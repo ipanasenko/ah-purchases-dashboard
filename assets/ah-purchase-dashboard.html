@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AH Purchase Analytics</title>
+    <style>
+      :root {
+        --bg: #f7f9fc;
+        --panel: #fff;
+        --text: #101828;
+        --muted: #667085;
+        --line: #d8e0ea;
+        --blue: #0072ce;
+        --blue-soft: #e7f2fd;
+        --green: #15803d;
+        --red: #c2410c;
+        --yellow: #f59e0b;
+        --shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      button, input, select {
+        font: inherit;
+      }
+      .app {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 228px minmax(0, 1fr);
+      }
+      aside {
+        border-right: 1px solid var(--line);
+        background: #fff;
+        padding: 18px 14px;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+      }
+      .brand {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 26px;
+      }
+      .mark {
+        width: 40px;
+        height: 40px;
+        display: block;
+        object-fit: contain;
+      }
+      .brand strong { display: block; font-size: 15px; }
+      .brand span { color: var(--muted); font-size: 13px; }
+      nav a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        color: #344054;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 14px;
+        margin-bottom: 4px;
+      }
+      nav a.active { background: var(--blue-soft); color: var(--blue); font-weight: 700; }
+      .side-note {
+        position: absolute;
+        bottom: 18px;
+        left: 18px;
+        right: 18px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      main { min-width: 0; }
+      header {
+        min-height: 68px;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 24px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255,255,255,.9);
+        backdrop-filter: blur(12px);
+        position: sticky;
+        top: 0;
+        z-index: 3;
+      }
+      .filters {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .control {
+        height: 38px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fff;
+        padding: 0 12px;
+        color: #344054;
+        min-width: 155px;
+      }
+      input.control { min-width: 260px; }
+      .actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .btn {
+        height: 38px;
+        border: 1px solid var(--blue);
+        border-radius: 6px;
+        background: #fff;
+        color: var(--blue);
+        padding: 0 14px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .btn.primary {
+        background: var(--blue);
+        color: #fff;
+      }
+      .content {
+        padding: 16px 24px 28px;
+      }
+      .status {
+        margin-bottom: 14px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .grid {
+        display: grid;
+        gap: 12px;
+      }
+      .metrics {
+        grid-template-columns: repeat(6, minmax(130px, 1fr));
+      }
+      .metric, .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+      }
+      .metric {
+        padding: 14px;
+        min-height: 98px;
+      }
+      .metric .label { color: var(--muted); font-size: 12px; }
+      .metric .value { font-size: 24px; font-weight: 750; margin-top: 8px; }
+      .metric .sub { color: var(--muted); font-size: 12px; margin-top: 8px; }
+      .layout {
+        grid-template-columns: 1.1fr 1.45fr 1fr;
+        margin-top: 14px;
+      }
+      .panel { min-width: 0; }
+      .panel h2 {
+        font-size: 15px;
+        margin: 0;
+        padding: 14px;
+        border-bottom: 1px solid var(--line);
+      }
+      .panel-body { padding: 14px; }
+      canvas { width: 100%; height: 250px; display: block; }
+      .table-panel {
+        grid-column: span 2;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th, td {
+        padding: 9px 12px;
+        border-bottom: 1px solid #e8edf3;
+        text-align: left;
+        white-space: nowrap;
+      }
+      th {
+        color: #475467;
+        font-size: 12px;
+        font-weight: 750;
+        background: #fbfcfe;
+        position: sticky;
+        top: 0;
+      }
+      td.num, th.num { text-align: right; }
+      .table-wrap { overflow: auto; max-height: 440px; }
+      .split {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 12px;
+        margin-top: 14px;
+      }
+      .insight {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid #e8edf3;
+        font-size: 13px;
+      }
+      .insight:last-child { border-bottom: 0; }
+      .insight strong { display: block; margin-bottom: 4px; }
+      .muted { color: var(--muted); }
+      .empty {
+        margin-top: 14px;
+        border: 1px dashed var(--blue);
+        background: #fff;
+        border-radius: 8px;
+        padding: 28px;
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .empty h2 { margin: 0 0 6px; font-size: 18px; }
+      .empty p { margin: 0; color: var(--muted); }
+      .hidden { display: none !important; }
+      .positive { color: var(--green); }
+      .negative { color: var(--red); }
+      @media (max-width: 1050px) {
+        .app { grid-template-columns: 1fr; }
+        aside { display: none; }
+        header { position: static; align-items: flex-start; flex-direction: column; }
+        .metrics, .layout, .split { grid-template-columns: 1fr 1fr; }
+        .table-panel { grid-column: span 2; }
+      }
+      @media (max-width: 680px) {
+        .content, header { padding-left: 14px; padding-right: 14px; }
+        .metrics, .layout, .split { grid-template-columns: 1fr; }
+        .table-panel { grid-column: auto; }
+        input.control, .control { width: 100%; min-width: 0; }
+        .filters, .actions { width: 100%; }
+        .btn { flex: 1; }
+        .empty { align-items: stretch; flex-direction: column; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside>
+        <div class="brand">
+          <img class="mark" src="https://static.ah.nl/ah-static/images/ah-ui-bridge-components/logo/logo-ah.svg" alt="Albert Heijn" />
+          <div><strong>Albert Heijn</strong><span>Purchase analytics</span></div>
+        </div>
+        <nav>
+          <a class="active" href="#overview">Overview</a>
+          <a href="#products">Products</a>
+          <a href="#categories">Categories</a>
+          <a href="#receipts">Receipts</a>
+          <a href="#insights">Insights</a>
+        </nav>
+        <div class="side-note">All analysis runs locally in this browser. Receipt exports may contain private tokens; keep them off shared drives.</div>
+      </aside>
+      <main>
+        <header>
+          <div class="filters">
+            <select id="range" class="control">
+              <option value="30d">Last 30 days</option>
+              <option value="3">Last 3 months</option>
+              <option value="2">Last 2 months</option>
+              <option value="12">Last 12 months</option>
+              <option value="999">All embedded data</option>
+            </select>
+            <select id="category" class="control"><option value="">All categories</option></select>
+            <input id="search" class="control" placeholder="Search products..." />
+          </div>
+        </header>
+        <section class="content">
+          <div id="status" class="status">Receipt data loaded.</div>
+          <div class="grid metrics">
+            <div class="metric"><div class="label">Total spend</div><div id="mSpend" class="value">€0.00</div><div class="sub">Net product lines</div></div>
+            <div class="metric"><div class="label">Products</div><div id="mProducts" class="value">0</div><div class="sub">Unique descriptions</div></div>
+            <div class="metric"><div class="label">Categories</div><div id="mCategories" class="value">0</div><div class="sub">Heuristic grouping</div></div>
+            <div class="metric"><div class="label">Savings</div><div id="mSavings" class="value">€0.00</div><div class="sub">Receipt discounts</div></div>
+            <div class="metric"><div class="label">Receipts</div><div id="mReceipts" class="value">0</div><div id="mDateRange" class="sub">No date range</div></div>
+            <div class="metric"><div class="label">Avg. per receipt</div><div id="mAverage" class="value">€0.00</div><div class="sub">Receipt totals</div></div>
+          </div>
+
+          <div id="empty" class="empty">
+            <div>
+              <h2>No AH receipt data loaded</h2>
+              <p>Refresh the dashboard to fetch and embed the latest AH receipt data.</p>
+            </div>
+          </div>
+
+          <div id="dashboard" class="hidden">
+            <div class="grid layout">
+              <section class="panel" id="categories">
+                <h2>Spend by category</h2>
+                <div class="panel-body"><canvas id="categoryChart"></canvas></div>
+              </section>
+              <section class="panel">
+                <h2>Spend over time</h2>
+                <div class="panel-body"><canvas id="timeChart"></canvas></div>
+              </section>
+              <section class="panel">
+                <h2>Savings & discounts</h2>
+                <div id="savingsList" class="panel-body"></div>
+              </section>
+            </div>
+            <div class="split">
+              <section class="panel table-panel" id="products">
+                <h2>Top products</h2>
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>Product</th><th>Category</th><th class="num">Qty</th><th class="num">Before</th><th class="num">Discount</th><th class="num">After</th><th class="num">Discounted</th><th class="num">Avg. after</th></tr></thead>
+                    <tbody id="productRows"></tbody>
+                  </table>
+                </div>
+              </section>
+              <section class="panel" id="insights">
+                <h2>Useful signals</h2>
+                <div id="insightsList" class="panel-body"></div>
+              </section>
+            </div>
+            <div class="split">
+              <section class="panel table-panel" id="receipts">
+                <h2>Receipts</h2>
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>Date</th><th>Store</th><th class="num">Products</th><th class="num">Total</th><th class="num">Savings</th></tr></thead>
+                    <tbody id="receiptRows"></tbody>
+                  </table>
+                </div>
+              </section>
+              <section class="panel">
+                <h2>Category table</h2>
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>Category</th><th class="num">Spend</th><th class="num">% total</th></tr></thead>
+                    <tbody id="categoryRows"></tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script>
+      const euro = new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" });
+      const number = new Intl.NumberFormat("nl-NL", { maximumFractionDigits: 2 });
+      const categoryRules = [
+        ["Fresh produce", /appel|banaan|tomaat|komkommer|sla|ui|aardappel|avocado|paprika|fruit|groente|citroen|peer|druif|wortel/i],
+        ["Dairy, eggs & cheese", /melk|yoghurt|kwark|kaas|ei|eieren|boter|room|zuivel|skyr/i],
+        ["Bread & bakery", /brood|bol|croissant|stokbrood|wrap|tortilla|bakker|gebak|cake/i],
+        ["Meat, fish & veg protein", /kip|gehakt|rund|varken|zalm|tonijn|vis|vlees|ham|tofu|vega|vegetar/i],
+        ["Drinks", /water|cola|ice tea|sap|koffie|thee|bier|wijn|frisdrank|drink|limonade/i],
+        ["Pantry", /pasta|rijst|olie|saus|soep|bonen|mais|meel|suiker|muesli|cruesli|havermout|conserven/i],
+        ["Snacks & sweets", /chips|chocolade|koek|snoep|noten|borrel|ijs|drop|popcorn/i],
+        ["Frozen", /diepvries|vries|frozen|pizza/i],
+        ["Household & personal", /wc|papier|shampoo|zeep|wasmiddel|reiniger|tand|deodorant|luier|keukenrol/i],
+        ["Prepared meals", /maaltijd|salade|soep|sushi|quiche|magnetron|stoommaaltijd/i],
+      ];
+      const colors = ["#0072ce", "#62aee8", "#66b56f", "#f59e0b", "#f97316", "#7c65b7", "#e65f8f", "#98a2b3", "#0f766e", "#a16207"];
+      const state = { receipts: [], rows: [] };
+
+      const els = {
+        range: document.querySelector("#range"),
+        category: document.querySelector("#category"),
+        search: document.querySelector("#search"),
+        status: document.querySelector("#status"),
+      };
+
+      function amount(value) {
+        if (value == null) return 0;
+        if (typeof value === "number") return value;
+        if (typeof value === "object") return amount(value.amount);
+        return Number(String(value).replace(/\./g, "").replace(",", ".").replace(/[^\d.-]/g, "")) || 0;
+      }
+      function receiptTotal(receipt) {
+        return amount(receipt?.totalAmount ?? receipt?.total?.amount ?? receipt?.detail?.total?.amount ?? receipt?.total);
+      }
+      function receiptDiscount(receipt) {
+        return amount(receipt?.totalDiscount?.amount ?? receipt?.detail?.discountTotal?.amount ?? receipt?.totalDiscount);
+      }
+      function detailOf(receipt) {
+        return receipt.detail || receipt;
+      }
+      function categoryFor(name) {
+        const rule = categoryRules.find(([, rx]) => rx.test(name));
+        return rule ? rule[0] : "Other";
+      }
+      function qtyOf(value) {
+        if (!value) return 1;
+        const normalized = String(value).replace(",", ".");
+        const match = normalized.match(/[\d.]+/);
+        return match ? Number(match[0]) : 1;
+      }
+      function parseDate(value) {
+        if (!value) return null;
+        const date = new Date(String(value).replace(" ", "T"));
+        return Number.isNaN(date.getTime()) ? null : date;
+      }
+      function storeLabel(receipt, detail, items) {
+        const address = receipt.storeAddress || detail.storeAddress;
+        if (address) return [address.street, address.city].filter(Boolean).join(", ");
+        return detail.storeId || items.find((x) => x.type === "tech-info")?.store || "";
+      }
+      function graphqlProducts(receipt, detail, transactionMoment, index) {
+        return (detail.products || []).map((item) => {
+          const lineAmount = amount(item.amount);
+          const indicators = item.indicators || [];
+          return {
+            receiptIndex: index,
+            date: parseDate(transactionMoment),
+            description: String(item.name || item.id || "Unknown product").trim(),
+            quantity: qtyOf(item.quantity),
+            amount: lineAmount,
+            grossAmount: lineAmount,
+            discountAmount: 0,
+            discounted: indicators.length > 0,
+            discountLabels: indicators.map((indicator) => indicator.name).filter(Boolean),
+            category: categoryFor(item.name || ""),
+          };
+        }).filter((item) => item.amount > 0 && !/bonuskaart|koopzegels|statiegeld/i.test(item.description));
+      }
+      function applyReceiptDiscounts(products, discountValue) {
+        const discount = Math.max(0, amount(discountValue));
+        if (!discount || !products.length) return products;
+        const eligible = products.some((product) => product.discounted)
+          ? products.filter((product) => product.discounted)
+          : products;
+        const eligibleTotal = eligible.reduce((sum, product) => sum + amount(product.grossAmount ?? product.amount), 0);
+        if (!eligibleTotal) return products;
+        let allocated = 0;
+        eligible.forEach((product, index) => {
+          const gross = amount(product.grossAmount ?? product.amount);
+          const share = index === eligible.length - 1
+            ? Math.max(0, discount - allocated)
+            : Math.min(gross, Math.round((discount * gross / eligibleTotal) * 100) / 100);
+          allocated += share;
+          product.grossAmount = gross;
+          product.discountAmount = share;
+          product.amount = Math.max(0, gross - share);
+          product.discounted = true;
+        });
+        return products;
+      }
+      function parseReceipts(input) {
+        const receipts = Array.isArray(input) ? input : input.receipts || input.data || [];
+        return receipts.map((receipt, index) => {
+          const detail = detailOf(receipt);
+          const items = detail.receiptUiItems || [];
+          const transactionMoment = receipt.transactionMoment || detail.transaction?.dateTime || detail.transactionMoment || items.find((x) => x.type === "tech-info")?.dateTime;
+          let inProducts = false;
+          const products = graphqlProducts(receipt, detail, transactionMoment, index);
+          for (const item of items) {
+            if (item.type === "products-header") inProducts = true;
+            if (item.type === "subtotal") inProducts = false;
+            if (!inProducts || item.type !== "product" || !item.amount) continue;
+            if (/bonuskaart|koopzegels|statiegeld/i.test(item.description || "")) continue;
+            const lineAmount = amount(item.amount);
+            if (lineAmount <= 0) continue;
+            products.push({
+              receiptIndex: index,
+              date: transactionMoment ? new Date(transactionMoment) : null,
+              description: String(item.description || "Unknown product").trim(),
+              quantity: qtyOf(item.quantity),
+              amount: lineAmount,
+              grossAmount: lineAmount,
+              discountAmount: 0,
+              discounted: false,
+              discountLabels: [],
+              category: item.category || categoryFor(item.description || ""),
+            });
+          }
+          applyReceiptDiscounts(products, receiptDiscount(receipt));
+          return {
+            ...receipt,
+            transactionMoment,
+            products,
+            totalValue: receiptTotal(receipt),
+            discountValue: receiptDiscount(receipt),
+            store: storeLabel(receipt, detail, items),
+          };
+        }).filter((receipt) => receipt.transactionMoment || receipt.products.length);
+      }
+      function cutoffForRange(range) {
+        if (range === "30d") {
+          const date = new Date();
+          date.setDate(date.getDate() - 30);
+          return date;
+        }
+        const months = Number(range);
+        if (months >= 999) return new Date(0);
+        const date = new Date();
+        date.setMonth(date.getMonth() - months);
+        return date;
+      }
+      function filtered() {
+        const cutoff = cutoffForRange(els.range.value);
+        const search = els.search.value.trim().toLowerCase();
+        const selectedCategory = els.category.value;
+        const receipts = state.receipts.filter((r) => new Date(r.transactionMoment) >= cutoff);
+        const rows = receipts.flatMap((r) => r.products).filter((p) => {
+          return (!search || p.description.toLowerCase().includes(search)) && (!selectedCategory || p.category === selectedCategory);
+        });
+        return { receipts, rows };
+      }
+      function groupBy(rows, keyFn) {
+        const map = new Map();
+        rows.forEach((row) => {
+          const key = keyFn(row);
+          if (!map.has(key)) map.set(key, []);
+          map.get(key).push(row);
+        });
+        return map;
+      }
+      function aggregateProducts(rows) {
+        return [...groupBy(rows, (r) => r.description).entries()].map(([name, items]) => ({
+          name,
+          category: items[0].category,
+          quantity: items.reduce((s, x) => s + x.quantity, 0),
+          spend: items.reduce((s, x) => s + x.amount, 0),
+          grossSpend: items.reduce((s, x) => s + amount(x.grossAmount ?? x.amount), 0),
+          discount: items.reduce((s, x) => s + amount(x.discountAmount), 0),
+          discountedLines: items.filter((x) => x.discounted || amount(x.discountAmount) > 0).length,
+          lines: items.length,
+        })).sort((a, b) => b.spend - a.spend);
+      }
+      function aggregateCategories(rows) {
+        return [...groupBy(rows, (r) => r.category).entries()].map(([name, items]) => ({
+          name,
+          spend: items.reduce((s, x) => s + x.amount, 0),
+        })).sort((a, b) => b.spend - a.spend);
+      }
+      function dayKey(date) {
+        return date.toISOString().slice(0, 10);
+      }
+      function aggregateDays(rows) {
+        return [...groupBy(rows.filter((r) => r.date), (r) => dayKey(r.date)).entries()].map(([date, items]) => ({
+          date,
+          spend: items.reduce((s, x) => s + x.amount, 0),
+        })).sort((a, b) => a.date.localeCompare(b.date));
+      }
+      function setMetric(id, text) { document.querySelector(id).textContent = text; }
+      function dateRangeLabel(receipts) {
+        const dates = receipts
+          .map((receipt) => parseDate(receipt.transactionMoment))
+          .filter(Boolean)
+          .sort((a, b) => a - b);
+        if (!dates.length) return "No date range";
+        const format = (date) => date.toLocaleDateString("nl-NL", { day: "2-digit", month: "short", year: "numeric" });
+        return `${format(dates[0])} - ${format(dates[dates.length - 1])}`;
+      }
+      function render() {
+        const { receipts, rows } = filtered();
+        const productAgg = aggregateProducts(rows);
+        const categoryAgg = aggregateCategories(rows);
+        const spend = rows.reduce((s, x) => s + x.amount, 0);
+        const savings = receipts.reduce((s, x) => s + x.discountValue, 0);
+        const totalReceipts = receipts.reduce((s, x) => s + x.totalValue, 0);
+
+        setMetric("#mSpend", euro.format(spend));
+        setMetric("#mProducts", String(productAgg.length));
+        setMetric("#mCategories", String(categoryAgg.length));
+        setMetric("#mSavings", euro.format(savings));
+        setMetric("#mReceipts", String(receipts.length));
+        const visibleDateRange = dateRangeLabel(receipts);
+        setMetric("#mDateRange", visibleDateRange);
+        setMetric("#mAverage", euro.format(receipts.length ? totalReceipts / receipts.length : 0));
+        els.status.textContent = state.receipts.length
+          ? `${receipts.length} receipts (${visibleDateRange}) and ${rows.length} product lines in the current view.`
+          : "No AH receipt data loaded.";
+        document.querySelector("#empty").classList.toggle("hidden", state.receipts.length > 0);
+        document.querySelector("#dashboard").classList.toggle("hidden", state.receipts.length === 0);
+
+        const categories = [...new Set(state.receipts.flatMap((r) => r.products.map((p) => p.category)))].sort();
+        const current = els.category.value;
+        els.category.innerHTML = `<option value="">All categories</option>` + categories.map((c) => `<option ${c === current ? "selected" : ""}>${c}</option>`).join("");
+
+        document.querySelector("#productRows").innerHTML = productAgg.slice(0, 80).map((p) => `
+          <tr><td>${escapeHtml(p.name)}</td><td>${escapeHtml(p.category)}</td><td class="num">${number.format(p.quantity)}</td><td class="num">${euro.format(p.grossSpend)}</td><td class="num">${euro.format(p.discount)}</td><td class="num">${euro.format(p.spend)}</td><td class="num">${number.format(p.discountedLines)} / ${number.format(p.lines)}</td><td class="num">${euro.format(p.spend / p.lines)}</td></tr>
+        `).join("");
+        document.querySelector("#categoryRows").innerHTML = categoryAgg.map((c) => `
+          <tr><td>${escapeHtml(c.name)}</td><td class="num">${euro.format(c.spend)}</td><td class="num">${spend ? number.format(c.spend / spend * 100) : 0}%</td></tr>
+        `).join("");
+        document.querySelector("#receiptRows").innerHTML = receipts.slice().sort((a, b) => new Date(b.transactionMoment) - new Date(a.transactionMoment)).map((r) => `
+          <tr><td>${new Date(r.transactionMoment).toLocaleString("nl-NL", { dateStyle: "medium", timeStyle: "short" })}</td><td>${escapeHtml(String(r.store || ""))}</td><td class="num">${r.products.length}</td><td class="num">${euro.format(r.totalValue)}</td><td class="num">${euro.format(r.discountValue)}</td></tr>
+        `).join("");
+        renderSavings(savings, spend, receipts);
+        renderInsights(productAgg, categoryAgg, receipts, rows, spend);
+        drawBars(document.querySelector("#categoryChart"), categoryAgg.slice(0, 8).map((x) => x.name), categoryAgg.slice(0, 8).map((x) => x.spend), "horizontal");
+        const days = aggregateDays(rows);
+        drawLine(document.querySelector("#timeChart"), days.map((x) => x.date.slice(5)), days.map((x) => x.spend));
+      }
+      function renderSavings(savings, spend, receipts) {
+        const savingsRate = spend ? savings / (spend + savings) * 100 : 0;
+        const maxDiscount = receipts.reduce((max, r) => Math.max(max, r.discountValue), 0);
+        document.querySelector("#savingsList").innerHTML = [
+          ["Total savings", euro.format(savings), `${number.format(savingsRate)}% of gross`],
+          ["Best discounted receipt", euro.format(maxDiscount), "Largest receipt-level discount"],
+          ["Receipts with savings", String(receipts.filter((r) => r.discountValue > 0).length), `${receipts.length} total receipts`],
+        ].map(([a, b, c]) => `<div class="insight"><div><strong>${a}</strong><span class="muted">${c}</span></div><strong>${b}</strong></div>`).join("");
+      }
+      function renderInsights(products, categories, receipts, rows, spend) {
+        const top = products[0];
+        const topCat = categories[0];
+        const repeat = products.filter((p) => p.lines >= 3).slice(0, 3).map((p) => p.name).join(", ") || "None yet";
+        const avgLine = rows.length ? spend / rows.length : 0;
+        document.querySelector("#insightsList").innerHTML = [
+          ["Top product", top ? `${top.name} (${euro.format(top.spend)})` : "No data"],
+          ["Top category", topCat ? `${topCat.name} (${number.format(topCat.spend / spend * 100)}%)` : "No data"],
+          ["Repeated buys", repeat],
+          ["Average product line", euro.format(avgLine)],
+          ["Largest receipt", euro.format(Math.max(0, ...receipts.map((r) => r.totalValue)))],
+        ].map(([a, b]) => `<div class="insight"><strong>${a}</strong><span>${escapeHtml(b)}</span></div>`).join("");
+      }
+      function drawBars(canvas, labels, values) {
+        const ctx = prepCanvas(canvas);
+        const w = canvas.width, h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+        const max = Math.max(1, ...values);
+        labels.forEach((label, i) => {
+          const y = 22 + i * 28;
+          const barW = (w - 170) * values[i] / max;
+          ctx.fillStyle = colors[i % colors.length];
+          ctx.fillRect(130, y, barW, 16);
+          ctx.fillStyle = "#344054";
+          ctx.font = "12px system-ui";
+          ctx.textAlign = "right";
+          ctx.fillText(label.slice(0, 22), 122, y + 12);
+          ctx.textAlign = "left";
+          ctx.fillText(euro.format(values[i]), 138 + barW, y + 12);
+        });
+      }
+      function drawLine(canvas, labels, values) {
+        const ctx = prepCanvas(canvas);
+        const w = canvas.width, h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+        const pad = 34, max = Math.max(1, ...values);
+        ctx.strokeStyle = "#e8edf3";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 5; i++) {
+          const y = pad + i * ((h - pad * 2) / 4);
+          ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(w - pad, y); ctx.stroke();
+        }
+        ctx.strokeStyle = "#0072ce";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        values.forEach((value, i) => {
+          const x = pad + (values.length <= 1 ? 0 : i * ((w - pad * 2) / (values.length - 1)));
+          const y = h - pad - (value / max) * (h - pad * 2);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        ctx.fillStyle = "#667085";
+        ctx.font = "11px system-ui";
+        ctx.textAlign = "center";
+        labels.forEach((label, i) => {
+          if (i % Math.ceil(labels.length / 6 || 1)) return;
+          const x = pad + (labels.length <= 1 ? 0 : i * ((w - pad * 2) / (labels.length - 1)));
+          ctx.fillText(label, x, h - 8);
+        });
+      }
+      function prepCanvas(canvas) {
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = Math.max(300, Math.floor(rect.width));
+        canvas.height = Math.max(220, Math.floor(rect.height));
+        return canvas.getContext("2d");
+      }
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[c]));
+      }
+      [els.range, els.category, els.search].forEach((el) => el.addEventListener("input", render));
+      window.addEventListener("resize", () => state.receipts.length && render());
+      render();
+    </script>
+  </body>
+</html>

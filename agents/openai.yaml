@@ -1,0 +1,4 @@
+interface:
+  display_name: "AH Purchases Dashboard"
+  short_description: "Build AH receipt analytics dashboard"
+  default_prompt: "Use $ah-purchases-dashboard to show my AH purchases dashboard for the last 3 months."
