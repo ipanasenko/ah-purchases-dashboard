@@ -348,16 +348,16 @@
       const euro = new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" });
       const number = new Intl.NumberFormat("nl-NL", { maximumFractionDigits: 2 });
       const categoryRules = [
-        ["Fresh produce", /appel|banaan|tomaat|komkommer|sla|ui|aardappel|avocado|paprika|fruit|groente|citroen|peer|druif|wortel/i],
-        ["Dairy, eggs & cheese", /melk|yoghurt|kwark|kaas|ei|eieren|boter|room|zuivel|skyr/i],
-        ["Bread & bakery", /brood|bol|croissant|stokbrood|wrap|tortilla|bakker|gebak|cake/i],
-        ["Meat, fish & veg protein", /kip|gehakt|rund|varken|zalm|tonijn|vis|vlees|ham|tofu|vega|vegetar/i],
-        ["Drinks", /water|cola|ice tea|sap|koffie|thee|bier|wijn|frisdrank|drink|limonade/i],
-        ["Pantry", /pasta|rijst|olie|saus|soep|bonen|mais|meel|suiker|muesli|cruesli|havermout|conserven/i],
-        ["Snacks & sweets", /chips|chocolade|koek|snoep|noten|borrel|ijs|drop|popcorn/i],
-        ["Frozen", /diepvries|vries|frozen|pizza/i],
-        ["Household & personal", /wc|papier|shampoo|zeep|wasmiddel|reiniger|tand|deodorant|luier|keukenrol/i],
-        ["Prepared meals", /maaltijd|salade|soep|sushi|quiche|magnetron|stoommaaltijd/i],
+        ["Fresh produce", /appel|banaan|bananen|tomaat|tomaten|romaat|komkommer|komkomm|sla|ui|aardappel|kriel|krieltjes|avocado|paprika|fruit|groente|citroen|peer|druif|kiwi|sungold|bessen|bes|bramen|kersen|mango|nectarine|mandarijn|frambo|wortel|winterpeen|pompoen|flespom|asperge|spitskool|biet|bieten|knoflook|dille|basilicum|passievrucht/i],
+        ["Dairy, eggs & cheese", /melk|yoghurt|kwark|kaas|ei|eieren|boter|room|zuivel|skyr|haver|oatly|philadelphia|violife|chavroux|mozzarella|dorblue|grana padano|poeder|zaanse hoeve/i],
+        ["Bread & bakery", /brood|bol|croissant|stokbrood|lp stok|wrap|tortilla|bakker|gebak|cake|focaccia|kaneel br/i],
+        ["Meat, fish & veg protein", /kip|gehakt|rund|varken|zalm|tonijn|vis|vlees|ham|tofu|vega|vegetar|biefstuk|pulled chick|kabeljauw|garnalen/i],
+        ["Drinks", /water|cola|ice tea|sap|koffie|thee|bier|wijn|frisdrank|drink|limonade|red bull|smoothie|apple bandit|corona|prosecco|settesoli|perfect ted/i],
+        ["Pantry", /pasta|rijst|olie|saus|soep|bonen|mais|meel|suiker|muesli|cruesli|havermout|conserven|penne|fusilli|passata|liguori|sfoglie|hummus|kik sauce|bonne maman|st dalfour|quaker prot|tortellini|salsa|zeewier/i],
+        ["Snacks & sweets", /chips|chocolade|koek|snoep|noten|borrel|ijs|drop|popcorn|lindt|ritter sport|raffaello|ferrero|cranberrymix|cranber mix|l&pcarre|quest jr/i],
+        ["Frozen", /diepvries|vries|frozen|pizza|ben & jerry|magnum/i],
+        ["Household & personal", /wc|papier|toiletpapier|edet|nalys|servet|shampoo|zeep|wasmiddel|reiniger|tand|deodorant|luier|keukenrol|always|vaatwas|nivea|hg |kalkweg|seepje/i],
+        ["Prepared meals", /maaltijd|salade|soep|sushi|quiche|magnetron|stoommaaltijd|stoommaal|poke medium/i],
       ];
       const colors = ["#0072ce", "#62aee8", "#66b56f", "#f59e0b", "#f97316", "#7c65b7", "#e65f8f", "#98a2b3", "#0f766e", "#a16207"];
       const state = { receipts: [], rows: [] };
