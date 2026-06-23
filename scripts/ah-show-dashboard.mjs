@@ -22,7 +22,7 @@ Auth:
   Prefer --auth-file ah-auth.json after the first login. If you do not have it yet, pass --code.
   If no auth file or code is available, this script opens AH login and captures the code automatically.
   --code, --token, and --redirect may be a bare code, a full appie:// redirect URL, or copied login JSON.
-  This script prints the generated dashboard file URL instead of opening an external browser.
+  This script prints the generated dashboard path and file URL instead of opening a browser.
 `);
 }
 
@@ -186,7 +186,7 @@ Fallback: ask the user to open the AH login URL and paste the redirect URL or co
   await embedDashboard(templateFile, receiptsFile, dashboardFile);
 
   console.log(`Dashboard: ${dashboardFile}`);
-  console.log(`Dashboard URL: ${pathToFileURL(dashboardFile).href}`);
+  console.log(`Open directly: ${pathToFileURL(dashboardFile).href}`);
   console.log(`Receipts: ${receiptsFile}`);
   if (args.open) {
     console.error("--open is deprecated and ignored to avoid launching an external browser from the skill.");

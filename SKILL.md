@@ -17,7 +17,7 @@ node ~/.codex/skills/ah-purchases-dashboard/scripts/ah-show-dashboard.mjs --mont
 
 Change `--months` to the requested month period, or use `--weeks N` for the last N weeks. For "last 30 days", use `--months 1`; the dashboard has a Last 30 days filter.
 
-Do not pass `--open`; the script prints the generated dashboard path and `file://` URL instead of launching an external browser. Prefer opening the printed dashboard URL in the Codex in-app browser when browser tooling is available. Otherwise, return the path/link to the user.
+Do not pass `--open`; the script prints the generated dashboard path and `file://` URL instead of launching a browser. Show that path/link to the user.
 
 ## Login Flow
 
@@ -45,7 +45,7 @@ Ask for only that pasted redirect/code. Do not ask the user to run commands or i
 - a bare UUID code
 - copied JSON containing a redirect URL
 
-6. Return the generated dashboard path: `outputs/ah-purchase-dashboard-with-data.html`.
+6. Return the generated dashboard path and URL printed by the script. The normal dashboard path is `outputs/ah-purchase-dashboard-with-data.html`.
 
 ## Auth And Privacy
 
