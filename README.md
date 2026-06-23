@@ -3,8 +3,10 @@
 Create a local dashboard from your Albert Heijn purchase history.
 
 The dashboard helps you review spending, receipts, categories, product totals, and discounts.
+Provides a button to download original PDF receipt.
 
-Receipt refreshes fetch receipt metadata and product lines only. Receipt PDFs are fetched on demand when you click a receipt's PDF button in the generated dashboard. For PDF downloads, use the printed localhost dashboard URL so the local helper can refresh AH auth without embedding tokens in the HTML file.
+<img width="1667" height="970" alt="image" src="https://github.com/user-attachments/assets/bff17bed-0bf2-4ef6-86e5-a896b1a9e524" />
+
 
 ## Install
 
