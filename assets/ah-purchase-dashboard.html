@@ -124,7 +124,6 @@
       }
       .metric .label { color: var(--muted); font-size: 12px; }
       .metric .value { font-size: 24px; font-weight: 750; margin-top: 8px; }
-      .metric .sub { color: var(--muted); font-size: 12px; margin-top: 8px; }
       .layout {
         grid-template-columns: 1.1fr 1.45fr 1fr;
         margin-top: 14px;
@@ -168,6 +167,24 @@
         gap: 12px;
         margin-top: 14px;
       }
+      .full-row {
+        margin-top: 14px;
+      }
+      .download-btn {
+        height: 28px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fff;
+        color: var(--blue);
+        padding: 0 10px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .download-btn:hover {
+        border-color: var(--blue);
+        background: var(--blue-soft);
+      }
       .insight {
         display: flex;
         justify-content: space-between;
@@ -200,13 +217,11 @@
         .brand { min-width: 0; }
         .filters { justify-content: flex-start; }
         .metrics, .layout, .split { grid-template-columns: 1fr 1fr; }
-        .table-panel { grid-column: span 2; }
       }
       @media (max-width: 680px) {
         .content, header { padding-left: 14px; padding-right: 14px; }
         .brand span { display: none; }
         .metrics, .layout, .split { grid-template-columns: 1fr; }
-        .table-panel { grid-column: auto; }
         input.control, .control { width: 100%; min-width: 0; }
         .filters, .actions { width: 100%; }
         .btn { flex: 1; }
@@ -237,12 +252,12 @@
         <section class="content">
           <div id="status" class="status">Receipt data loaded.</div>
           <div class="grid metrics">
-            <div class="metric"><div class="label">Total spend</div><div id="mSpend" class="value">€0.00</div><div class="sub">Net product lines</div></div>
-            <div class="metric"><div class="label">Products</div><div id="mProducts" class="value">0</div><div class="sub">Unique descriptions</div></div>
-            <div class="metric"><div class="label">Categories</div><div id="mCategories" class="value">0</div><div class="sub">Heuristic grouping</div></div>
-            <div class="metric"><div class="label">Savings</div><div id="mSavings" class="value">€0.00</div><div class="sub">Receipt discounts</div></div>
-            <div class="metric"><div class="label">Receipts</div><div id="mReceipts" class="value">0</div><div id="mDateRange" class="sub">No date range</div></div>
-            <div class="metric"><div class="label">Avg. per receipt</div><div id="mAverage" class="value">€0.00</div><div class="sub">Receipt totals</div></div>
+            <div class="metric"><div class="label">Total spend</div><div id="mSpend" class="value">€0.00</div></div>
+            <div class="metric"><div class="label">Products</div><div id="mProducts" class="value">0</div></div>
+            <div class="metric"><div class="label">Categories</div><div id="mCategories" class="value">0</div></div>
+            <div class="metric"><div class="label">Savings</div><div id="mSavings" class="value">€0.00</div></div>
+            <div class="metric"><div class="label">Receipts</div><div id="mReceipts" class="value">0</div></div>
+            <div class="metric"><div class="label">Avg. per receipt</div><div id="mAverage" class="value">€0.00</div></div>
           </div>
 
           <div id="empty" class="empty">
@@ -267,8 +282,8 @@
                 <div id="savingsList" class="panel-body"></div>
               </section>
             </div>
-            <div class="split">
-              <section class="panel table-panel" id="products">
+            <div class="full-row">
+              <section class="panel" id="products">
                 <h2>Top products</h2>
                 <div class="table-wrap">
                   <table>
@@ -277,20 +292,22 @@
                   </table>
                 </div>
               </section>
-              <section class="panel" id="insights">
-                <h2>Useful signals</h2>
-                <div id="insightsList" class="panel-body"></div>
-              </section>
             </div>
-            <div class="split">
-              <section class="panel table-panel" id="receipts">
+            <div class="full-row">
+              <section class="panel" id="receipts">
                 <h2>Receipts</h2>
                 <div class="table-wrap">
                   <table>
-                    <thead><tr><th>Date</th><th>Store</th><th class="num">Products</th><th class="num">Total</th><th class="num">Savings</th></tr></thead>
+                    <thead><tr><th>Date</th><th>Store</th><th class="num">Products</th><th class="num">Total</th><th class="num">Savings</th><th class="num">Download</th></tr></thead>
                     <tbody id="receiptRows"></tbody>
                   </table>
                 </div>
+              </section>
+            </div>
+            <div class="split">
+              <section class="panel" id="insights">
+                <h2>Useful signals</h2>
+                <div id="insightsList" class="panel-body"></div>
               </section>
               <section class="panel">
                 <h2>Category table</h2>
@@ -437,6 +454,7 @@
           applyReceiptDiscounts(products, receiptDiscount(receipt));
           return {
             ...receipt,
+            receiptIndex: index,
             transactionMoment,
             products,
             totalValue: receiptTotal(receipt),
@@ -527,7 +545,6 @@
         setMetric("#mSavings", euro.format(savings));
         setMetric("#mReceipts", String(receipts.length));
         const visibleDateRange = dateRangeLabel(receipts);
-        setMetric("#mDateRange", visibleDateRange);
         setMetric("#mAverage", euro.format(receipts.length ? totalReceipts / receipts.length : 0));
         els.status.textContent = state.receipts.length
           ? `${receipts.length} receipts (${visibleDateRange}) and ${rows.length} product lines in the current view.`
@@ -546,7 +563,7 @@
           <tr><td>${escapeHtml(c.name)}</td><td class="num">${euro.format(c.spend)}</td><td class="num">${spend ? number.format(c.spend / spend * 100) : 0}%</td></tr>
         `).join("");
         document.querySelector("#receiptRows").innerHTML = receipts.slice().sort((a, b) => new Date(b.transactionMoment) - new Date(a.transactionMoment)).map((r) => `
-          <tr><td>${new Date(r.transactionMoment).toLocaleString("nl-NL", { dateStyle: "medium", timeStyle: "short" })}</td><td>${escapeHtml(String(r.store || ""))}</td><td class="num">${r.products.length}</td><td class="num">${euro.format(r.totalValue)}</td><td class="num">${euro.format(r.discountValue)}</td></tr>
+          <tr><td>${new Date(r.transactionMoment).toLocaleString("nl-NL", { dateStyle: "medium", timeStyle: "short" })}</td><td>${escapeHtml(String(r.store || ""))}</td><td class="num">${r.products.length}</td><td class="num">${euro.format(r.totalValue)}</td><td class="num">${euro.format(r.discountValue)}</td><td class="num"><button class="download-btn" type="button" data-receipt-index="${r.receiptIndex}">JSON</button></td></tr>
         `).join("");
         renderSavings(savings, spend, receipts);
         renderInsights(productAgg, categoryAgg, receipts, rows, spend);
@@ -632,7 +649,31 @@
       function escapeHtml(value) {
         return String(value).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[c]));
       }
+      function receiptDownloadName(receipt) {
+        const date = parseDate(receipt?.transactionMoment);
+        const datePart = date ? date.toISOString().slice(0, 10) : "unknown-date";
+        const id = String(receipt?.transactionId || receipt?.id || receipt?.detail?.id || "receipt").replace(/[^a-z0-9_-]+/gi, "-");
+        return `ah-receipt-${datePart}-${id}.json`;
+      }
+      function downloadReceipt(index) {
+        const receipt = state.receipts[Number(index)];
+        if (!receipt) return;
+        const json = JSON.stringify(receipt, null, 2);
+        const blob = new Blob([json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = receiptDownloadName(receipt);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      }
       [els.range, els.category, els.search].forEach((el) => el.addEventListener("input", render));
+      document.querySelector("#receiptRows").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-receipt-index]");
+        if (button) downloadReceipt(button.dataset.receiptIndex);
+      });
       window.addEventListener("resize", () => state.receipts.length && render());
       render();
     </script>
