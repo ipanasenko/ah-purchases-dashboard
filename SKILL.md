@@ -26,7 +26,9 @@ Change `--months` to the requested period. For "last 30 days", use `--months 1`;
 node ~/.codex/skills/ah-purchases-dashboard/scripts/ah-show-dashboard.mjs --months 3 --token 'PASTED_VALUE' --auth-file ah-auth.json --out-dir outputs --open
 ```
 
-3. If no auth file or pasted value exists, ask the user to open this exact URL, log in, and paste back the redirect/code shown after login:
+3. If no auth file or pasted value exists, run the command normally. The script opens AH login automatically, waits for the user to log in, captures the redirect code, and saves `ah-auth.json`.
+
+4. Only if automatic login capture fails, ask the user to open this exact URL, log in, and paste back the redirect/code shown after login:
 
 ```text
 https://login.ah.nl/secure/oauth/authorize?client_id=appie&redirect_uri=appie%3A%2F%2Flogin-exit&response_type=code
@@ -34,14 +36,14 @@ https://login.ah.nl/secure/oauth/authorize?client_id=appie&redirect_uri=appie%3A
 
 Ask for only that pasted redirect/code. Do not ask the user to run commands or inspect network requests.
 
-4. After the user pastes the value, extract nothing manually unless needed; pass the pasted value to `--token`. The script accepts:
+5. After the user pastes the value, extract nothing manually unless needed; pass the pasted value to `--token`. The script accepts:
 
 - `appie://login-exit?code=...`
 - `https://...code=...`
 - a bare UUID code
 - copied JSON containing a redirect URL
 
-5. Return the generated dashboard path: `outputs/ah-purchase-dashboard-with-data.html`.
+6. Return the generated dashboard path: `outputs/ah-purchase-dashboard-with-data.html`.
 
 ## Auth And Privacy
 

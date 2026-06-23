@@ -19,6 +19,7 @@ Creates:
 
 Auth:
   Prefer --auth-file ah-auth.json after the first login. If you do not have it yet, pass --code.
+  If no auth file or code is available, this script opens AH login and captures the code automatically.
   --code, --token, and --redirect may be a bare code, a full appie:// redirect URL, or copied login JSON.
 `);
 }
@@ -42,6 +43,24 @@ function runNode(args, options = {}) {
     child.on("error", reject);
     child.on("exit", (code) => {
       if (code === 0) resolve();
+      else reject(new Error(`${args.join(" ")} exited with code ${code}`));
+    });
+  });
+}
+
+function runNodeCaptureStdout(args, options = {}) {
+  return new Promise((resolve, reject) => {
+    let stdout = "";
+    const child = spawn(process.execPath, args, {
+      stdio: ["ignore", "pipe", "inherit"],
+      ...options,
+    });
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.on("error", reject);
+    child.on("exit", (code) => {
+      if (code === 0) resolve(stdout.trim());
       else reject(new Error(`${args.join(" ")} exited with code ${code}`));
     });
   });
@@ -127,6 +146,7 @@ async function main() {
   const receiptsFile = path.join(outDir, "ah-receipts.json");
   const dashboardFile = path.join(outDir, "ah-purchase-dashboard-with-data.html");
   const fetchScript = path.join(scriptDir, "ah-fetch-receipts.mjs");
+  const loginCaptureScript = path.join(scriptDir, "ah-login-capture.mjs");
   const templateFile = await firstExisting([
     path.join(scriptDir, "ah-purchase-dashboard.html"),
     path.join(scriptDir, "..", "assets", "ah-purchase-dashboard.html"),
@@ -155,8 +175,18 @@ async function main() {
   } else if (await exists(authFile)) {
     fetchArgs.push("--auth-file", authFile);
   } else {
-    usage();
-    throw new Error(`No auth file found at ${authFile}. Ask the user to open the AH login URL and paste the redirect URL or code, then rerun with --code, --token, or --redirect.`);
+    console.error("No reusable AH auth file found. Opening AH login to capture a fresh login code...");
+    try {
+      const loginCaptureArgs = [loginCaptureScript];
+      if (args["login-timeout"]) loginCaptureArgs.push("--timeout", String(args["login-timeout"]));
+      const code = extractOauthCode(await runNodeCaptureStdout(loginCaptureArgs));
+      if (!code) throw new Error("AH login finished but no OAuth code was captured.");
+      fetchArgs.push("--code", code);
+    } catch (error) {
+      throw new Error(`Automatic AH login capture failed: ${error.message}
+
+Fallback: ask the user to open the AH login URL and paste the redirect URL or code, then run this script again internally with --code, --token, or --redirect.`);
+    }
   }
 
   await runNode(fetchArgs);
