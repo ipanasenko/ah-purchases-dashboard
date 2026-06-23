@@ -45,7 +45,7 @@ Ask for only that pasted redirect/code. Do not ask the user to run commands or i
 - a bare UUID code
 - copied JSON containing a redirect URL
 
-6. Return the generated dashboard path and URL printed by the script. The normal dashboard path is `outputs/ah-purchase-dashboard-with-data.html`.
+6. Return the generated dashboard path and URLs printed by the script. Prefer the printed localhost dashboard URL when the user wants receipt PDF downloads. The normal dashboard path is `outputs/ah-purchase-dashboard-with-data.html`.
 
 ## Auth And Privacy
 
@@ -57,8 +57,9 @@ Ask for only that pasted redirect/code. Do not ask the user to run commands or i
 
 - `outputs/ah-receipts.json`: fetched raw receipt data.
 - `outputs/ah-purchase-dashboard-with-data.html`: interactive dashboard with receipt data embedded directly in the page.
+- `outputs/ah-dashboard-server.log`: local helper log for on-demand PDF downloads.
 
-The dashboard shows total spend, receipts, categories, spend over time, product-level before/after discount spend, estimated product discount allocation, and period filters. The generated page does not require JSON import or demo data controls; it initializes from the embedded receipt JSON.
+The dashboard shows total spend, receipts, categories, spend over time, product-level before/after discount spend, estimated product discount allocation, period filters, and on-demand receipt PDF downloads. Refreshes fetch receipt metadata and product lines only; PDFs are fetched when the user clicks a PDF button. The generated page does not require JSON import or demo data controls; it initializes from the embedded receipt JSON.
 
 ## Notes
 

@@ -184,6 +184,11 @@
         border-color: var(--blue);
         background: var(--blue-soft);
       }
+      .download-btn:disabled {
+        color: var(--muted);
+        cursor: default;
+        background: #f6f8fb;
+      }
       .insight {
         display: flex;
         justify-content: space-between;
@@ -334,7 +339,9 @@
         ["Prepared meals", /maaltijd|salade|soep|sushi|quiche|magnetron|stoommaaltijd|stoommaal|poke medium/i],
       ];
       const colors = ["#0072ce", "#62aee8", "#66b56f", "#f59e0b", "#f97316", "#7c65b7", "#e65f8f", "#98a2b3", "#0f766e", "#a16207"];
-      const state = { receipts: [], rows: [] };
+      const embeddedData = { receipts: [] };
+      const ahPdfConfig = {};
+      const state = { receipts: parseReceipts(embeddedData), rows: [] };
 
       const els = {
         range: document.querySelector("#range"),
@@ -564,7 +571,7 @@
           <tr><td>${escapeHtml(c.name)}</td><td class="num">${euro.format(c.spend)}</td><td class="num">${spend ? number.format(c.spend / spend * 100) : 0}%</td></tr>
         `).join("");
         document.querySelector("#receiptRows").innerHTML = receipts.slice().sort((a, b) => new Date(b.transactionMoment) - new Date(a.transactionMoment)).map((r) => `
-          <tr><td>${new Date(r.transactionMoment).toLocaleString("nl-NL", { dateStyle: "medium", timeStyle: "short" })}</td><td>${escapeHtml(String(r.store || ""))}</td><td class="num">${r.products.length}</td><td class="num">${euro.format(r.totalValue)}</td><td class="num">${euro.format(r.discountValue)}</td><td class="num"><button class="download-btn" type="button" data-receipt-index="${r.receiptIndex}" ${r.pdfBase64 ? "" : "disabled"}>${r.pdfBase64 ? "PDF" : "Missing"}</button></td></tr>
+          <tr><td>${new Date(r.transactionMoment).toLocaleString("nl-NL", { dateStyle: "medium", timeStyle: "short" })}</td><td>${escapeHtml(String(r.store || ""))}</td><td class="num">${r.products.length}</td><td class="num">${euro.format(r.totalValue)}</td><td class="num">${euro.format(r.discountValue)}</td><td class="num"><button class="download-btn" type="button" data-receipt-index="${r.receiptIndex}" ${r.hasPdf === false ? "disabled" : ""}>PDF</button></td></tr>
         `).join("");
         renderSavings(savings, spend, receipts);
         renderInsights(productAgg, categoryAgg, receipts, rows, spend);
@@ -662,10 +669,44 @@
         for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
         return new Blob([bytes], { type });
       }
-      function downloadReceiptPdf(index) {
+      async function fetchReceiptPdfBase64(receipt) {
+        if (receipt.pdfBase64) return receipt.pdfBase64;
+        const id = receipt?.transactionId || receipt?.id || receipt?.detail?.id || receipt?.detail?.transaction?.id;
+        if (!id || !ahPdfConfig?.endpoint) return "";
+        const url = new URL(ahPdfConfig.endpoint);
+        url.searchParams.set("id", id);
+        const response = await fetch(url);
+        const json = await response.json();
+        if (!response.ok || json?.error) {
+          throw new Error(json?.error || `PDF request failed: ${response.status}`);
+        }
+        receipt.pdfBase64 = json?.pdfBase64 || "";
+        return receipt.pdfBase64;
+      }
+      async function downloadReceiptPdf(index, button) {
         const receipt = state.receipts[Number(index)];
-        if (!receipt?.pdfBase64) return;
-        const blob = base64ToBlob(receipt.pdfBase64, "application/pdf");
+        if (!receipt) return;
+        const originalLabel = button?.textContent;
+        if (button) {
+          button.disabled = true;
+          button.textContent = "Loading";
+        }
+        let base64 = "";
+        try {
+          base64 = await fetchReceiptPdfBase64(receipt);
+        } catch (error) {
+          console.error(error);
+          if (button) button.textContent = "Retry";
+          return;
+        } finally {
+          if (button) button.disabled = false;
+        }
+        if (!base64) {
+          if (button) button.textContent = "Missing";
+          return;
+        }
+        if (button) button.textContent = originalLabel || "PDF";
+        const blob = base64ToBlob(base64, "application/pdf");
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
@@ -714,7 +755,7 @@
       [els.range, els.category, els.search].forEach((el) => el.addEventListener("input", render));
       document.querySelector("#receiptRows").addEventListener("click", (event) => {
         const button = event.target.closest("[data-receipt-index]");
-        if (button) downloadReceiptPdf(button.dataset.receiptIndex);
+        if (button) downloadReceiptPdf(button.dataset.receiptIndex, button);
       });
       window.addEventListener("resize", () => state.receipts.length && render());
       render();

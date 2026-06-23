@@ -20,6 +20,7 @@ function usage() {
 Advanced endpoint overrides:
   --receipt-list-url URL
   --receipt-detail-url-template URL_WITH_{transactionId}
+  --include-pdfs
   --legacy-rest
 
 Get an OAuth code by opening:
@@ -259,6 +260,7 @@ async function fetchGraphqlReceiptPdf(accessToken, id) {
 }
 
 async function fetchGraphqlReceipts(accessToken, cutoff, period, cacheData) {
+  const includePdfs = Boolean(period.includePdfs);
   const pageSize = 20;
   const receipts = [];
   const cachedReceipts = cachedReceiptMap(cacheData);
@@ -313,10 +315,14 @@ async function fetchGraphqlReceipts(accessToken, cutoff, period, cacheData) {
       }
       if (combined.pdfBase64) {
         pdfCacheHits += 1;
-      } else {
+        combined.hasPdf = true;
+      } else if (includePdfs) {
         fetchedPdfs += 1;
         console.error(`Fetching receipt PDF: ${summary.id}`);
         combined.pdfBase64 = await fetchGraphqlReceiptPdf(accessToken, summary.id);
+        combined.hasPdf = Boolean(combined.pdfBase64);
+      } else {
+        combined.hasPdf = true;
       }
       receipts.push(combined);
     }
@@ -326,7 +332,9 @@ async function fetchGraphqlReceipts(accessToken, cutoff, period, cacheData) {
 
   console.error(`Found ${receipts.length} receipts since ${cutoff.toISOString().slice(0, 10)}.`);
   console.error(`Receipt details: ${cacheHits} cached, ${fetchedDetails} fetched.`);
-  console.error(`Receipt PDFs: ${pdfCacheHits} cached, ${fetchedPdfs} fetched.`);
+  console.error(includePdfs
+    ? `Receipt PDFs: ${pdfCacheHits} cached, ${fetchedPdfs} fetched.`
+    : `Receipt PDFs: ${pdfCacheHits} cached, 0 fetched. PDF fetching is deferred until download.`);
   return {
     source: "ah.nl mobile GraphQL API",
     fetchedAt: new Date().toISOString(),
@@ -403,7 +411,10 @@ async function main() {
     process.exit(args.help ? 0 : 1);
   }
 
-  const period = periodFromArgs(args);
+  const period = {
+    ...periodFromArgs(args),
+    ...(args["include-pdfs"] ? { includePdfs: true } : {}),
+  };
   const out = args.out || "ah-receipts.json";
   const authOut = args["auth-out"] || "ah-auth.json";
   const cutoff = cutoffDateForPeriod(period);

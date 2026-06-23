@@ -2,6 +2,7 @@
 
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
+import net from "node:net";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -77,6 +78,42 @@ async function exists(file) {
   }
 }
 
+function findOpenPort() {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.on("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const { port } = server.address();
+      server.close(() => resolve(port));
+    });
+  });
+}
+
+async function startDashboardServer(serverScript, dashboardFile, authFile, outDir) {
+  const port = await findOpenPort();
+  const logFile = path.join(outDir, "ah-dashboard-server.log");
+  const logHandle = await fs.open(logFile, "a");
+  const child = spawn(process.execPath, [
+    serverScript,
+    "--dashboard",
+    dashboardFile,
+    "--auth-file",
+    authFile,
+    "--port",
+    String(port),
+  ], {
+    detached: true,
+    stdio: ["ignore", logHandle.fd, logHandle.fd],
+  });
+  child.unref();
+  await logHandle.close();
+  return {
+    port,
+    url: `http://127.0.0.1:${port}/dashboard`,
+    logFile,
+  };
+}
+
 async function firstExisting(files) {
   for (const file of files) {
     if (await exists(file)) return file;
@@ -113,16 +150,18 @@ function extractOauthCode(value) {
   return text;
 }
 
-async function embedDashboard(templateFile, receiptsFile, outFile) {
+async function embedDashboard(templateFile, receiptsFile, outFile, options = {}) {
   const html = await fs.readFile(templateFile, "utf8");
   const data = await fs.readFile(receiptsFile, "utf8");
-  const marker = "const state = { receipts: [], rows: [] };";
+  const marker = `const embeddedData = { receipts: [] };
+      const ahPdfConfig = {};
+      const state = { receipts: parseReceipts(embeddedData), rows: [] };`;
   if (!html.includes(marker)) {
     throw new Error(`Dashboard template is missing expected marker: ${marker}`);
   }
   const embedded = html.replace(
     marker,
-    `const embeddedData = ${data};\n      const state = { receipts: parseReceipts(embeddedData), rows: [] };`,
+    `const embeddedData = ${data};\n      const ahPdfConfig = ${JSON.stringify(options.pdfConfig || {})};\n      const state = { receipts: parseReceipts(embeddedData), rows: [] };`,
   );
   await fs.writeFile(outFile, embedded);
 }
@@ -183,10 +222,18 @@ Fallback: ask the user to open the AH login URL and paste the redirect URL or co
   }
 
   await runNode(fetchArgs);
-  await embedDashboard(templateFile, receiptsFile, dashboardFile);
+  const serverScript = path.join(scriptDir, "ah-dashboard-server.mjs");
+  const server = await startDashboardServer(serverScript, dashboardFile, authFile, outDir);
+  await embedDashboard(templateFile, receiptsFile, dashboardFile, {
+    pdfConfig: {
+      endpoint: `http://127.0.0.1:${server.port}/api/receipt-pdf`,
+    },
+  });
 
   console.log(`Dashboard: ${dashboardFile}`);
   console.log(`Open directly: ${pathToFileURL(dashboardFile).href}`);
+  console.log(`Open with PDF downloads: ${server.url}`);
+  console.log(`Dashboard server log: ${server.logFile}`);
   console.log(`Receipts: ${receiptsFile}`);
   if (args.open) {
     console.error("--open is deprecated and ignored to avoid launching an external browser from the skill.");
