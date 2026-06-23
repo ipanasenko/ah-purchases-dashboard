@@ -230,6 +230,12 @@ const POS_RECEIPT_DETAILS_QUERY = `query FetchPosReceiptsDetails($id: String!) {
   }
 }`;
 
+const POS_RECEIPT_PDF_QUERY = `query FetchPosReceiptPdf($id: String!) {
+  posReceiptPdf(id: $id) {
+    pdfBase64
+  }
+}`;
+
 function parseAhDateTime(value) {
   if (!value) return null;
   const normalized = String(value).replace(" ", "T");
@@ -241,12 +247,24 @@ function receiptDate(receipt) {
   return parseAhDateTime(receipt?.detail?.transaction?.dateTime || receipt?.transaction?.dateTime);
 }
 
+async function fetchGraphqlReceiptPdf(accessToken, id) {
+  const data = await graphqlRequest(
+    "FetchPosReceiptPdf",
+    POS_RECEIPT_PDF_QUERY,
+    { id },
+    accessToken,
+  );
+  return data.posReceiptPdf?.pdfBase64 || "";
+}
+
 async function fetchGraphqlReceipts(accessToken, cutoff, months, cacheData) {
   const pageSize = 20;
   const receipts = [];
   const cachedReceipts = cachedReceiptMap(cacheData);
   let cacheHits = 0;
   let fetchedDetails = 0;
+  let pdfCacheHits = 0;
+  let fetchedPdfs = 0;
   let offset = 0;
   let totalElements = Infinity;
   let shouldStop = false;
@@ -292,6 +310,13 @@ async function fetchGraphqlReceipts(accessToken, cutoff, months, cacheData) {
         shouldStop = true;
         break;
       }
+      if (combined.pdfBase64) {
+        pdfCacheHits += 1;
+      } else {
+        fetchedPdfs += 1;
+        console.error(`Fetching receipt PDF: ${summary.id}`);
+        combined.pdfBase64 = await fetchGraphqlReceiptPdf(accessToken, summary.id);
+      }
       receipts.push(combined);
     }
 
@@ -300,6 +325,7 @@ async function fetchGraphqlReceipts(accessToken, cutoff, months, cacheData) {
 
   console.error(`Found ${receipts.length} receipts since ${cutoff.toISOString().slice(0, 10)}.`);
   console.error(`Receipt details: ${cacheHits} cached, ${fetchedDetails} fetched.`);
+  console.error(`Receipt PDFs: ${pdfCacheHits} cached, ${fetchedPdfs} fetched.`);
   return {
     source: "ah.nl mobile GraphQL API",
     fetchedAt: new Date().toISOString(),

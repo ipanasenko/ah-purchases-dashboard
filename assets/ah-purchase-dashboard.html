@@ -297,7 +297,7 @@
                 <h2>Receipts</h2>
                 <div class="table-wrap">
                   <table>
-                    <thead><tr><th>Date</th><th>Store</th><th class="num">Products</th><th class="num">Total</th><th class="num">Savings</th><th class="num">Download</th></tr></thead>
+                    <thead><tr><th>Date</th><th>Store</th><th class="num">Products</th><th class="num">Total</th><th class="num">Savings</th><th class="num">PDF</th></tr></thead>
                     <tbody id="receiptRows"></tbody>
                   </table>
                 </div>
@@ -562,7 +562,7 @@
           <tr><td>${escapeHtml(c.name)}</td><td class="num">${euro.format(c.spend)}</td><td class="num">${spend ? number.format(c.spend / spend * 100) : 0}%</td></tr>
         `).join("");
         document.querySelector("#receiptRows").innerHTML = receipts.slice().sort((a, b) => new Date(b.transactionMoment) - new Date(a.transactionMoment)).map((r) => `
-          <tr><td>${new Date(r.transactionMoment).toLocaleString("nl-NL", { dateStyle: "medium", timeStyle: "short" })}</td><td>${escapeHtml(String(r.store || ""))}</td><td class="num">${r.products.length}</td><td class="num">${euro.format(r.totalValue)}</td><td class="num">${euro.format(r.discountValue)}</td><td class="num"><button class="download-btn" type="button" data-receipt-index="${r.receiptIndex}">JSON</button></td></tr>
+          <tr><td>${new Date(r.transactionMoment).toLocaleString("nl-NL", { dateStyle: "medium", timeStyle: "short" })}</td><td>${escapeHtml(String(r.store || ""))}</td><td class="num">${r.products.length}</td><td class="num">${euro.format(r.totalValue)}</td><td class="num">${euro.format(r.discountValue)}</td><td class="num"><button class="download-btn" type="button" data-receipt-index="${r.receiptIndex}" ${r.pdfBase64 ? "" : "disabled"}>${r.pdfBase64 ? "PDF" : "Missing"}</button></td></tr>
         `).join("");
         renderSavings(savings, spend, receipts);
         renderInsights(productAgg, categoryAgg, receipts, rows, spend);
@@ -648,21 +648,26 @@
       function escapeHtml(value) {
         return String(value).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[c]));
       }
-      function receiptDownloadName(receipt) {
+      function receiptDownloadBaseName(receipt) {
         const date = parseDate(receipt?.transactionMoment);
         const datePart = date ? date.toISOString().slice(0, 10) : "unknown-date";
         const id = String(receipt?.transactionId || receipt?.id || receipt?.detail?.id || "receipt").replace(/[^a-z0-9_-]+/gi, "-");
-        return `ah-receipt-${datePart}-${id}.json`;
+        return `ah-receipt-${datePart}-${id}`;
       }
-      function downloadReceipt(index) {
+      function base64ToBlob(base64, type) {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+        return new Blob([bytes], { type });
+      }
+      function downloadReceiptPdf(index) {
         const receipt = state.receipts[Number(index)];
-        if (!receipt) return;
-        const json = JSON.stringify(receipt, null, 2);
-        const blob = new Blob([json], { type: "application/json" });
+        if (!receipt?.pdfBase64) return;
+        const blob = base64ToBlob(receipt.pdfBase64, "application/pdf");
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = receiptDownloadName(receipt);
+        link.download = `${receiptDownloadBaseName(receipt)}.pdf`;
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -671,7 +676,7 @@
       [els.range, els.category, els.search].forEach((el) => el.addEventListener("input", render));
       document.querySelector("#receiptRows").addEventListener("click", (event) => {
         const button = event.target.closest("[data-receipt-index]");
-        if (button) downloadReceipt(button.dataset.receiptIndex);
+        if (button) downloadReceiptPdf(button.dataset.receiptIndex);
       });
       window.addEventListener("resize", () => state.receipts.length && render());
       render();
