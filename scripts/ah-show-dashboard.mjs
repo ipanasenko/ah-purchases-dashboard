@@ -3,15 +3,15 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 
 function usage() {
   console.log(`Usage:
-  node ah-show-dashboard.mjs --months 3 [--auth-file ah-auth.json] [--out-dir outputs] [--open]
-  node ah-show-dashboard.mjs --months 3 --code OAUTH_CODE [--auth-file ah-auth.json] [--out-dir outputs] [--open]
-  node ah-show-dashboard.mjs --months 3 --token 'appie://login-exit?code=...' [--auth-file ah-auth.json] [--out-dir outputs] [--open]
+  node ah-show-dashboard.mjs --months 3 [--auth-file ah-auth.json] [--out-dir outputs]
+  node ah-show-dashboard.mjs --months 3 --code OAUTH_CODE [--auth-file ah-auth.json] [--out-dir outputs]
+  node ah-show-dashboard.mjs --months 3 --token 'appie://login-exit?code=...' [--auth-file ah-auth.json] [--out-dir outputs]
 
 Creates:
   ah-receipts.json
@@ -21,6 +21,7 @@ Auth:
   Prefer --auth-file ah-auth.json after the first login. If you do not have it yet, pass --code.
   If no auth file or code is available, this script opens AH login and captures the code automatically.
   --code, --token, and --redirect may be a bare code, a full appie:// redirect URL, or copied login JSON.
+  This script prints the generated dashboard file URL instead of opening an external browser.
 `);
 }
 
@@ -63,14 +64,6 @@ function runNodeCaptureStdout(args, options = {}) {
       if (code === 0) resolve(stdout.trim());
       else reject(new Error(`${args.join(" ")} exited with code ${code}`));
     });
-  });
-}
-
-function shellOpen(file) {
-  return new Promise((resolve) => {
-    const child = spawn("open", [file], { stdio: "ignore" });
-    child.on("exit", resolve);
-    child.on("error", resolve);
   });
 }
 
@@ -193,9 +186,11 @@ Fallback: ask the user to open the AH login URL and paste the redirect URL or co
   await embedDashboard(templateFile, receiptsFile, dashboardFile);
 
   console.log(`Dashboard: ${dashboardFile}`);
+  console.log(`Dashboard URL: ${pathToFileURL(dashboardFile).href}`);
   console.log(`Receipts: ${receiptsFile}`);
-
-  if (args.open) await shellOpen(dashboardFile);
+  if (args.open) {
+    console.error("--open is deprecated and ignored to avoid launching an external browser from the skill.");
+  }
 }
 
 main().catch((error) => {

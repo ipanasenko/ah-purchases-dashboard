@@ -12,10 +12,12 @@ Use the bundled scripts to fetch AH mobile receipts and generate a local HTML da
 Run from the user's current workspace and write user-facing files to `outputs/`:
 
 ```bash
-node ~/.codex/skills/ah-purchases-dashboard/scripts/ah-show-dashboard.mjs --months 3 --auth-file ah-auth.json --out-dir outputs --open
+node ~/.codex/skills/ah-purchases-dashboard/scripts/ah-show-dashboard.mjs --months 3 --auth-file ah-auth.json --out-dir outputs
 ```
 
 Change `--months` to the requested period. For "last 30 days", use `--months 1`; the dashboard has a Last 30 days filter.
+
+Do not pass `--open`; the script prints the generated dashboard path and `file://` URL instead of launching an external browser. Prefer opening the printed dashboard URL in the Codex in-app browser when browser tooling is available. Otherwise, return the path/link to the user.
 
 ## Login Flow
 
@@ -23,7 +25,7 @@ Change `--months` to the requested period. For "last 30 days", use `--months 1`;
 2. If the user already pasted a value containing `code=...`, a UUID-like code, or AH login JSON, run:
 
 ```bash
-node ~/.codex/skills/ah-purchases-dashboard/scripts/ah-show-dashboard.mjs --months 3 --token 'PASTED_VALUE' --auth-file ah-auth.json --out-dir outputs --open
+node ~/.codex/skills/ah-purchases-dashboard/scripts/ah-show-dashboard.mjs --months 3 --token 'PASTED_VALUE' --auth-file ah-auth.json --out-dir outputs
 ```
 
 3. If no auth file or pasted value exists, run the command normally. The script opens AH login automatically, waits for the user to log in, captures the redirect code, and saves `ah-auth.json`.
