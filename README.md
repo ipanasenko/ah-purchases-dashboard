@@ -1,20 +1,39 @@
 # AH Purchases Dashboard Skill
 
-Codex skill for fetching Albert Heijn mobile receipt data and generating a local purchase analytics dashboard.
+Create a local dashboard from your Albert Heijn purchase history.
 
-The generated dashboard embeds receipt JSON directly into the HTML output and runs locally in the browser. Keep `ah-auth.json` and generated `outputs/` private.
+The dashboard helps you review spending, receipts, categories, product totals, and discounts.
 
-## Usage
-
-```bash
-node scripts/ah-show-dashboard.mjs --months 3 --auth-file ah-auth.json --out-dir outputs
-```
-
-Use `--weeks N` instead of `--months N` to fetch and build the dashboard for the last N weeks:
+## Install
 
 ```bash
-node scripts/ah-show-dashboard.mjs --weeks 8 --auth-file ah-auth.json --out-dir outputs
+npx skills@latest add ipanasenko/ah-purchases-dashboard
 ```
 
-If no reusable auth file exists, the dashboard script now opens AH login automatically and captures the login code after the user signs in.
-The script prints the generated dashboard path and `file://` URL; it does not open an external browser automatically.
+## Example Usage
+
+Ask your agent:
+
+```text
+Use the $ah-purchases-dashboard skill to show my AH purchases dashboard for the last 3 months.
+```
+
+Or even shorter:
+
+```text
+$ah-purchases-dashboard last 8 weeks.
+```
+
+Your agent will generate the dashboard and give you a local link to open.
+
+## Login
+
+The first time you use the skill, your agent will guide you through Albert Heijn login.
+
+Usually, you only need to sign in when prompted. If automatic login does not work, your agent will ask you to paste back the login redirect or code after signing in.
+
+After a successful login, the skill can reuse your saved login for future dashboard refreshes until Albert Heijn asks you to sign in again.
+
+## Privacy
+
+Your Albert Heijn login and receipt data are private. Do not share generated files or pasted login codes unless you intentionally want another tool or person to access that data.
