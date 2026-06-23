@@ -5,7 +5,8 @@ Create a local dashboard from your Albert Heijn purchase history.
 The dashboard helps you review spending, receipts, categories, product totals, and discounts.
 Provides a button to download original PDF receipt.
 
-<img width="1667" height="970" alt="image" src="https://github.com/user-attachments/assets/bff17bed-0bf2-4ef6-86e5-a896b1a9e524" />
+<img width="1665" height="968" alt="image" src="https://github.com/user-attachments/assets/fb9f40b6-880f-42ba-afbc-6d546b9e6b7e" />
+
 
 
 ## Install
