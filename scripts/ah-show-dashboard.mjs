@@ -10,6 +10,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 function usage() {
   console.log(`Usage:
   node ah-show-dashboard.mjs --months 3 [--auth-file ah-auth.json] [--out-dir outputs]
+  node ah-show-dashboard.mjs --weeks 8 [--auth-file ah-auth.json] [--out-dir outputs]
   node ah-show-dashboard.mjs --months 3 --code OAUTH_CODE [--auth-file ah-auth.json] [--out-dir outputs]
   node ah-show-dashboard.mjs --months 3 --token 'appie://login-exit?code=...' [--auth-file ah-auth.json] [--out-dir outputs]
 
@@ -133,7 +134,7 @@ async function main() {
     return;
   }
 
-  const months = String(args.months || 3);
+  const periodArg = args.weeks ? ["--weeks", String(args.weeks)] : ["--months", String(args.months || 3)];
   const outDir = path.resolve(String(args["out-dir"] || "outputs"));
   const authFile = path.resolve(String(args["auth-file"] || "ah-auth.json"));
   const receiptsFile = path.join(outDir, "ah-receipts.json");
@@ -153,8 +154,7 @@ async function main() {
 
   const fetchArgs = [
     fetchScript,
-    "--months",
-    months,
+    ...periodArg,
     "--out",
     receiptsFile,
     "--auth-out",

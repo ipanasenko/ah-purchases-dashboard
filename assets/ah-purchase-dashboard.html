@@ -239,6 +239,8 @@
           <div class="filters">
             <select id="range" class="control">
               <option value="30d">Last 30 days</option>
+              <option value="4w">Last 4 weeks</option>
+              <option value="8w">Last 8 weeks</option>
               <option value="3">Last 3 months</option>
               <option value="2">Last 2 months</option>
               <option value="12">Last 12 months</option>
@@ -468,6 +470,12 @@
           date.setDate(date.getDate() - 30);
           return date;
         }
+        if (range.endsWith("w")) {
+          const weeks = Number(range.slice(0, -1));
+          const date = new Date();
+          date.setDate(date.getDate() - weeks * 7);
+          return date;
+        }
         const months = Number(range);
         if (months >= 999) return new Date(0);
         const date = new Date();
@@ -672,6 +680,25 @@
         link.click();
         link.remove();
         URL.revokeObjectURL(url);
+      }
+      function ensureRangeOption(value, label) {
+        if (!value || [...els.range.options].some((option) => option.value === value)) return;
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        els.range.insertBefore(option, els.range.querySelector('option[value="999"]'));
+      }
+      function periodLabel(count, unit) {
+        return `Last ${count} ${unit}${Number(count) === 1 ? "" : "s"}`;
+      }
+      if (typeof embeddedData !== "undefined") {
+        if (embeddedData.weeks) {
+          ensureRangeOption(`${embeddedData.weeks}w`, periodLabel(embeddedData.weeks, "week"));
+          els.range.value = `${embeddedData.weeks}w`;
+        } else if (embeddedData.months) {
+          ensureRangeOption(String(embeddedData.months), periodLabel(embeddedData.months, "month"));
+          els.range.value = String(embeddedData.months);
+        }
       }
       [els.range, els.category, els.search].forEach((el) => el.addEventListener("input", render));
       document.querySelector("#receiptRows").addEventListener("click", (event) => {

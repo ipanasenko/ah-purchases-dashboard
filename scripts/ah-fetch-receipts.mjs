@@ -12,6 +12,7 @@ const BASE_HEADERS = {
 function usage() {
   console.log(`Usage:
   node ah-fetch-receipts.mjs --code OAUTH_CODE [--months 3] [--out ah-receipts.json]
+  node ah-fetch-receipts.mjs --code OAUTH_CODE [--weeks 8] [--out ah-receipts.json]
   node ah-fetch-receipts.mjs --refresh-token TOKEN [--months 3] [--out ah-receipts.json]
   node ah-fetch-receipts.mjs --access-token TOKEN [--months 3] [--out ah-receipts.json]
   node ah-fetch-receipts.mjs --auth-file ah-auth.json [--months 3] [--out ah-receipts.json]
@@ -257,7 +258,7 @@ async function fetchGraphqlReceiptPdf(accessToken, id) {
   return data.posReceiptPdf?.pdfBase64 || "";
 }
 
-async function fetchGraphqlReceipts(accessToken, cutoff, months, cacheData) {
+async function fetchGraphqlReceipts(accessToken, cutoff, period, cacheData) {
   const pageSize = 20;
   const receipts = [];
   const cachedReceipts = cachedReceiptMap(cacheData);
@@ -329,7 +330,7 @@ async function fetchGraphqlReceipts(accessToken, cutoff, months, cacheData) {
   return {
     source: "ah.nl mobile GraphQL API",
     fetchedAt: new Date().toISOString(),
-    months,
+    ...period,
     receipts,
   };
 }
@@ -372,10 +373,27 @@ async function writeJsonFile(path, data) {
   await fs.writeFile(path, JSON.stringify(data, null, 2));
 }
 
-function cutoffDate(months) {
+function cutoffDateForPeriod(period) {
   const date = new Date();
-  date.setMonth(date.getMonth() - months);
+  if (period.weeks) {
+    date.setDate(date.getDate() - period.weeks * 7);
+  } else {
+    date.setMonth(date.getMonth() - period.months);
+  }
   return date;
+}
+
+function periodFromArgs(args) {
+  if (args.weeks) {
+    if (args.weeks === true) throw new Error("--weeks requires a positive number.");
+    const weeks = Number(args.weeks);
+    if (!Number.isFinite(weeks) || weeks <= 0) throw new Error("--weeks must be a positive number.");
+    return { weeks };
+  }
+  if (args.months === true) throw new Error("--months requires a positive number.");
+  const months = Number(args.months || 3);
+  if (!Number.isFinite(months) || months <= 0) throw new Error("--months must be a positive number.");
+  return { months };
 }
 
 async function main() {
@@ -385,10 +403,10 @@ async function main() {
     process.exit(args.help ? 0 : 1);
   }
 
-  const months = Number(args.months || 3);
+  const period = periodFromArgs(args);
   const out = args.out || "ah-receipts.json";
   const authOut = args["auth-out"] || "ah-auth.json";
-  const cutoff = cutoffDate(months);
+  const cutoff = cutoffDateForPeriod(period);
   const cacheData = await readJsonFileIfExists(out);
   if (cacheData) {
     const cachedCount = cachedReceiptMap(cacheData).size;
@@ -429,7 +447,7 @@ async function main() {
   console.error(`Saved auth tokens to ${authOut}. Keep this file private.`);
 
   if (!args["legacy-rest"]) {
-    const exportData = await fetchGraphqlReceipts(accessToken, cutoff, months, cacheData);
+    const exportData = await fetchGraphqlReceipts(accessToken, cutoff, period, cacheData);
     await writeJsonFile(out, exportData);
     console.error(`Wrote ${out}`);
     return;
@@ -490,7 +508,7 @@ async function main() {
   const exportData = {
     source: "ah.nl mobile API",
     fetchedAt: new Date().toISOString(),
-    months,
+    ...period,
     refreshToken,
     receipts: detailedReceipts,
   };
