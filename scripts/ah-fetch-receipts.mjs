@@ -101,6 +101,25 @@ async function graphqlRequest(operationName, query, variables, token) {
   return json.data;
 }
 
+async function readJsonFileIfExists(path) {
+  const fs = await import("node:fs/promises");
+  try {
+    return JSON.parse(await fs.readFile(path, "utf8"));
+  } catch (error) {
+    if (error?.code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+function receiptId(receipt) {
+  return receipt?.transactionId || receipt?.id || receipt?.detail?.id || receipt?.detail?.transaction?.id;
+}
+
+function cachedReceiptMap(cacheData) {
+  const receipts = Array.isArray(cacheData) ? cacheData : cacheData?.receipts || cacheData?.data || [];
+  return new Map(receipts.map((receipt) => [receiptId(receipt), receipt]).filter(([id]) => id));
+}
+
 const POS_RECEIPTS_PAGE_QUERY = `query FetchPosReceiptsPage($pagination: OffsetLimitPagination!) {
   posReceiptsPage(pagination: $pagination) {
     pagination {
@@ -222,9 +241,12 @@ function receiptDate(receipt) {
   return parseAhDateTime(receipt?.detail?.transaction?.dateTime || receipt?.transaction?.dateTime);
 }
 
-async function fetchGraphqlReceipts(accessToken, cutoff, months) {
+async function fetchGraphqlReceipts(accessToken, cutoff, months, cacheData) {
   const pageSize = 20;
   const receipts = [];
+  const cachedReceipts = cachedReceiptMap(cacheData);
+  let cacheHits = 0;
+  let fetchedDetails = 0;
   let offset = 0;
   let totalElements = Infinity;
   let shouldStop = false;
@@ -241,20 +263,29 @@ async function fetchGraphqlReceipts(accessToken, cutoff, months) {
     totalElements = page.pagination?.totalElements ?? totalElements;
 
     for (const summary of page.posReceipts || []) {
-      console.error(`Fetching receipt detail: ${summary.id}`);
-      const detailData = await graphqlRequest(
+      const cached = cachedReceipts.get(summary.id);
+      const detail = cached?.detail;
+      if (detail) {
+        cacheHits += 1;
+        console.error(`Using cached receipt detail: ${summary.id}`);
+      } else {
+        fetchedDetails += 1;
+        console.error(`Fetching receipt detail: ${summary.id}`);
+      }
+      const detailData = detail ? null : await graphqlRequest(
         "FetchPosReceiptsDetails",
         POS_RECEIPT_DETAILS_QUERY,
         { id: summary.id },
         accessToken,
       );
-      const detail = detailData.posReceiptDetails;
+      const receiptDetail = detail || detailData.posReceiptDetails;
       const combined = {
+        ...cached,
         ...summary,
         transactionId: summary.id,
-        transactionMoment: detail.transaction?.dateTime,
-        totalAmount: summary.totalAmount?.amount ?? detail.total?.amount,
-        detail,
+        transactionMoment: receiptDetail.transaction?.dateTime || cached?.transactionMoment,
+        totalAmount: summary.totalAmount?.amount ?? receiptDetail.total?.amount ?? cached?.totalAmount,
+        detail: receiptDetail,
       };
       const date = receiptDate(combined);
       if (date && date < cutoff) {
@@ -268,6 +299,7 @@ async function fetchGraphqlReceipts(accessToken, cutoff, months) {
   }
 
   console.error(`Found ${receipts.length} receipts since ${cutoff.toISOString().slice(0, 10)}.`);
+  console.error(`Receipt details: ${cacheHits} cached, ${fetchedDetails} fetched.`);
   return {
     source: "ah.nl mobile GraphQL API",
     fetchedAt: new Date().toISOString(),
@@ -331,6 +363,11 @@ async function main() {
   const out = args.out || "ah-receipts.json";
   const authOut = args["auth-out"] || "ah-auth.json";
   const cutoff = cutoffDate(months);
+  const cacheData = await readJsonFileIfExists(out);
+  if (cacheData) {
+    const cachedCount = cachedReceiptMap(cacheData).size;
+    console.error(`Loaded ${cachedCount} cached receipts from ${out}.`);
+  }
 
   let accessToken = args["access-token"];
   let refreshToken = args["refresh-token"];
@@ -366,7 +403,7 @@ async function main() {
   console.error(`Saved auth tokens to ${authOut}. Keep this file private.`);
 
   if (!args["legacy-rest"]) {
-    const exportData = await fetchGraphqlReceipts(accessToken, cutoff, months);
+    const exportData = await fetchGraphqlReceipts(accessToken, cutoff, months, cacheData);
     await writeJsonFile(out, exportData);
     console.error(`Wrote ${out}`);
     return;
@@ -392,25 +429,37 @@ async function main() {
   console.error(`Found ${recent.length} receipts since ${cutoff.toISOString().slice(0, 10)}.`);
 
   const detailedReceipts = [];
+  const cachedReceipts = cachedReceiptMap(cacheData);
+  let cacheHits = 0;
+  let fetchedDetails = 0;
   for (const [index, receipt] of recent.entries()) {
     const id = receipt.transactionId;
-    console.error(`Fetching receipt ${index + 1}/${recent.length}: ${id}`);
-    const detailPaths = [
-      ...(args["receipt-detail-url-template"]
-        ? [args["receipt-detail-url-template"].replace("{transactionId}", encodeURIComponent(id))]
-        : []),
-      `/mobile-services/v2/receipts/${encodeURIComponent(id)}`,
-      `/mobile-services/v1/receipts/${encodeURIComponent(id)}`,
-      `/mobile-services/receipts/v2/${encodeURIComponent(id)}`,
-      `/mobile-services/receipts/v1/${encodeURIComponent(id)}`,
-      `/receipt/v1/receipts/${encodeURIComponent(id)}`,
-    ];
-    const detailResult = await requestAny(detailPaths, {
-      token: accessToken,
-    });
-    const detail = detailResult.data;
-    detailedReceipts.push({ ...receipt, detail });
+    const cached = cachedReceipts.get(id);
+    if (cached?.detail) {
+      cacheHits += 1;
+      console.error(`Using cached receipt ${index + 1}/${recent.length}: ${id}`);
+      detailedReceipts.push({ ...cached, ...receipt, detail: cached.detail });
+    } else {
+      fetchedDetails += 1;
+      console.error(`Fetching receipt ${index + 1}/${recent.length}: ${id}`);
+      const detailPaths = [
+        ...(args["receipt-detail-url-template"]
+          ? [args["receipt-detail-url-template"].replace("{transactionId}", encodeURIComponent(id))]
+          : []),
+        `/mobile-services/v2/receipts/${encodeURIComponent(id)}`,
+        `/mobile-services/v1/receipts/${encodeURIComponent(id)}`,
+        `/mobile-services/receipts/v2/${encodeURIComponent(id)}`,
+        `/mobile-services/receipts/v1/${encodeURIComponent(id)}`,
+        `/receipt/v1/receipts/${encodeURIComponent(id)}`,
+      ];
+      const detailResult = await requestAny(detailPaths, {
+        token: accessToken,
+      });
+      const detail = detailResult.data;
+      detailedReceipts.push({ ...receipt, detail });
+    }
   }
+  console.error(`Receipt details: ${cacheHits} cached, ${fetchedDetails} fetched.`);
 
   const exportData = {
     source: "ah.nl mobile API",
