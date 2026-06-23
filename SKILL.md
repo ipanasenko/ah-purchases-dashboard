@@ -1,6 +1,6 @@
 ---
 name: ah-purchases-dashboard
-description: Fetch Albert Heijn (AH.nl/Appie) mobile receipt data and generate an interactive local purchase analytics dashboard. Use when the user asks to show, refresh, analyze, or create an AH purchases dashboard for the last N months/days, pastes an AH login redirect code/token, or asks about AH receipts, product spend, discounts, categories, or receipt analytics.
+description: Fetch Albert Heijn (AH.nl) mobile receipt data and generate an interactive local purchase analytics dashboard. Use when the user asks to show, refresh, analyze, or create an AH purchases dashboard for the last N months/days, pastes an AH login redirect code/token, or asks about AH receipts, product spend, discounts, categories, or receipt analytics.
 ---
 
 # AH Purchases Dashboard
