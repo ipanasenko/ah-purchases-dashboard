@@ -239,12 +239,6 @@
           <div class="filters">
             <select id="range" class="control">
               <option value="30d">Last 30 days</option>
-              <option value="4w">Last 4 weeks</option>
-              <option value="8w">Last 8 weeks</option>
-              <option value="3">Last 3 months</option>
-              <option value="2">Last 2 months</option>
-              <option value="12">Last 12 months</option>
-              <option value="999">All embedded data</option>
             </select>
             <select id="category" class="control"><option value="">All categories</option></select>
             <input id="search" class="control" placeholder="Search products..." />
@@ -681,25 +675,42 @@
         link.remove();
         URL.revokeObjectURL(url);
       }
-      function ensureRangeOption(value, label) {
+      function addRangeOption(value, label) {
         if (!value || [...els.range.options].some((option) => option.value === value)) return;
         const option = document.createElement("option");
         option.value = value;
         option.textContent = label;
-        els.range.insertBefore(option, els.range.querySelector('option[value="999"]'));
+        els.range.appendChild(option);
       }
       function periodLabel(count, unit) {
         return `Last ${count} ${unit}${Number(count) === 1 ? "" : "s"}`;
       }
-      if (typeof embeddedData !== "undefined") {
+      function requestedPeriod() {
+        if (typeof embeddedData === "undefined") return { value: "30d", months: 3 };
         if (embeddedData.weeks) {
-          ensureRangeOption(`${embeddedData.weeks}w`, periodLabel(embeddedData.weeks, "week"));
-          els.range.value = `${embeddedData.weeks}w`;
-        } else if (embeddedData.months) {
-          ensureRangeOption(String(embeddedData.months), periodLabel(embeddedData.months, "month"));
-          els.range.value = String(embeddedData.months);
+          const weeks = Number(embeddedData.weeks);
+          return {
+            value: `${weeks}w`,
+            weeks,
+            months: Math.max(1, Math.ceil((weeks * 7) / 30)),
+          };
         }
+        const months = Math.max(1, Number(embeddedData.months || 3));
+        return { value: months === 1 ? "30d" : String(months), months };
       }
+      function buildRangeOptions() {
+        const period = requestedPeriod();
+        els.range.innerHTML = "";
+        addRangeOption("30d", "Last 30 days");
+        for (let month = 2; month <= period.months; month += 1) {
+          addRangeOption(String(month), periodLabel(month, "month"));
+        }
+        if (period.weeks) {
+          addRangeOption(period.value, periodLabel(period.weeks, "week"));
+        }
+        els.range.value = period.value;
+      }
+      buildRangeOptions();
       [els.range, els.category, els.search].forEach((el) => el.addEventListener("input", render));
       document.querySelector("#receiptRows").addEventListener("click", (event) => {
         const button = event.target.closest("[data-receipt-index]");
