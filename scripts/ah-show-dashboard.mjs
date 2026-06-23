@@ -4,7 +4,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import net from "node:net";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -23,7 +23,7 @@ Auth:
   Prefer --auth-file ah-auth.json after the first login. If you do not have it yet, pass --code.
   If no auth file or code is available, this script opens AH login and captures the code automatically.
   --code, --token, and --redirect may be a bare code, a full appie:// redirect URL, or copied login JSON.
-  This script prints the generated dashboard path and file URL instead of opening a browser.
+  This script prints the generated dashboard path and localhost URL instead of opening a browser.
 `);
 }
 
@@ -231,8 +231,7 @@ Fallback: ask the user to open the AH login URL and paste the redirect URL or co
   });
 
   console.log(`Dashboard: ${dashboardFile}`);
-  console.log(`Open directly: ${pathToFileURL(dashboardFile).href}`);
-  console.log(`Open with PDF downloads: ${server.url}`);
+  console.log(`Open dashboard: ${server.url}`);
   console.log(`Dashboard server log: ${server.logFile}`);
   console.log(`Receipts: ${receiptsFile}`);
   if (args.open) {

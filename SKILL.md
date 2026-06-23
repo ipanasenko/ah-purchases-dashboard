@@ -12,12 +12,12 @@ Use the bundled scripts to fetch AH mobile receipts and generate a local HTML da
 Run from the user's current workspace and write user-facing files to `outputs/`:
 
 ```bash
-node ~/.codex/skills/ah-purchases-dashboard/scripts/ah-show-dashboard.mjs --months 3 --auth-file ah-auth.json --out-dir outputs
+node ~/.agents/skills/ah-purchases-dashboard/scripts/ah-show-dashboard.mjs --months 3 --auth-file ah-auth.json --out-dir outputs
 ```
 
 Change `--months` to the requested month period, or use `--weeks N` for the last N weeks. For "last 30 days", use `--months 1`; the dashboard has a Last 30 days filter.
 
-Do not pass `--open`; the script prints the generated dashboard path and `file://` URL instead of launching a browser. Show that path/link to the user.
+Do not pass `--open`; the script starts a localhost helper server and prints the generated dashboard path plus a localhost dashboard URL. Show the localhost dashboard URL to the user. Do not show or recommend a `file://` URL because receipt PDF downloads require the localhost helper.
 
 ## Login Flow
 
@@ -25,7 +25,7 @@ Do not pass `--open`; the script prints the generated dashboard path and `file:/
 2. If the user already pasted a value containing `code=...`, a UUID-like code, or AH login JSON, run:
 
 ```bash
-node ~/.codex/skills/ah-purchases-dashboard/scripts/ah-show-dashboard.mjs --months 3 --token 'PASTED_VALUE' --auth-file ah-auth.json --out-dir outputs
+node ~/.agents/skills/ah-purchases-dashboard/scripts/ah-show-dashboard.mjs --months 3 --token 'PASTED_VALUE' --auth-file ah-auth.json --out-dir outputs
 ```
 
 3. If no auth file or pasted value exists, run the command normally. The script opens AH login automatically, waits for the user to log in, captures the redirect code, and saves `ah-auth.json`.
@@ -45,7 +45,7 @@ Ask for only that pasted redirect/code. Do not ask the user to run commands or i
 - a bare UUID code
 - copied JSON containing a redirect URL
 
-6. Return the generated dashboard path and URLs printed by the script. Prefer the printed localhost dashboard URL when the user wants receipt PDF downloads. The normal dashboard path is `outputs/ah-purchase-dashboard-with-data.html`.
+6. Return the generated dashboard path and the printed localhost dashboard URL. Always present the localhost URL as the URL to open; do not present a `file://` URL. The normal dashboard path is `outputs/ah-purchase-dashboard-with-data.html`.
 
 ## Auth And Privacy
 
