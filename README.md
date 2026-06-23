@@ -1,4 +1,4 @@
-# AH Purchases Dashboard Skill
+# AH Purchases Dashboard Skill [![skills.sh](https://skills.sh/b/ipanasenko/ah-purchases-dashboard)](https://skills.sh/ipanasenko/ah-purchases-dashboard)
 
 Create a local dashboard from your Albert Heijn purchase history.
 
